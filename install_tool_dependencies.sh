@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Update and upgrade apt settings and apps
-apt update && apt upgrade -y
-xargs apt install -y < /app/requirements_apt.txt
+# apt update && apt upgrade -y
+# xargs apt install -y < /app/requirements_apt.txt
 
 # Run the project's main requirements.txt
-pip install -r /app/requirements.txt
+# pip install -r /app/requirements.txt
 
 for tool in /app/superagi/tools/* /app/superagi/tools/external_tools/* /app/superagi/tools/marketplace_tools/* ; do
 # Loop through the tools directories and install their apt_requirements.txt if they exist

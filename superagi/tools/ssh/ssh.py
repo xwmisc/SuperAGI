@@ -9,6 +9,10 @@ class RemoteLinuxExecutionSchema(BaseModel):
        ...,
         description="The IP address of the remote Linux server.",
     )
+    port: str = Field(
+       ...,
+        description="The port number for SSH connection, default is 22.",
+    )
     username: str = Field(
        ...,
         description="The username for accessing the remote server.",
@@ -35,16 +39,17 @@ class RemoteLinuxExecutionTool(BaseTool):
     name = "RemoteLinuxExecution"
     description = (
         "A tool for connecting to a remote Linux server and executing a Bash script command."
-        "Input should include IP address, username, password, and the Bash script command."
+        "Input should include IP address, port, username, password, and the Bash script command."
     )
     args_schema: Type[RemoteLinuxExecutionSchema] = RemoteLinuxExecutionSchema
 
-    def _execute(self, ip: str, username: str, password: str, bash_script: str) -> str:
+    def _execute(self, ip: str, port: str, username: str, password: str, bash_script: str) -> str:
         """
         Execute the remote Linux execution tool.
 
         Args:
             ip : The IP address of the remote server.
+            port : The port number for SSH connection.
             username : The username for accessing the server.
             password : The password for accessing the server.
             bash_script : The Bash script command to execute.
@@ -52,15 +57,32 @@ class RemoteLinuxExecutionTool(BaseTool):
         Returns:
             The output of the executed command.
         """
-        try:
-            import paramiko
-
-            ssh = paramiko.SSHClient()
+        import paramiko
+        import io
+        import socket
+        with paramiko.SSHClient() as ssh:
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            ssh.connect(ip, username=username, password=password)
-            stdin, stdout, stderr = ssh.exec_command(bash_script)
-            output = stdout.read().decode('utf-8')
-            ssh.close()
-            return output
-        except Exception as e:
-            return f"Error: {str(e)}"
+            try:
+                ssh.connect(ip, port=int(port), username=username, password=password, timeout=60)
+                with ssh.exec_command(bash_script) as (stdin, stdout, stderr):
+                    stdout_data = stdout.read().decode('utf-8')
+                    stderr_data = stderr.read().decode('utf-8')
+                    exit_status = stdout.channel.recv_exit_status()
+
+                output = io.StringIO()
+                output.write(f"Command: {bash_script}\n")
+                output.write(f"Exit Status: {exit_status}\n")
+                output.write(f"Standard Output:\n{stdout_data}\n")
+                if stderr_data != "":
+                    output.write(f"Error Output:\n{stderr_data}\n")
+
+                return output.getvalue()
+
+            except paramiko.AuthenticationException:
+                return "Authentication failed: Please check username and password"
+            except paramiko.SSHException as ssh_exception:
+                return f"SSH connection error: {str(ssh_exception)}"
+            except socket.error as socket_error:
+                return f"Network error: {str(socket_error)}"
+            except Exception as e:
+                return f"An unexpected error occurred: {str(e)}"

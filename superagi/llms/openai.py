@@ -1,3 +1,4 @@
+import time
 import openai
 from openai import APIError, InvalidRequestError
 from openai.error import RateLimitError, AuthenticationError, Timeout, TryAgain
@@ -15,6 +16,20 @@ def custom_retry_error_callback(retry_state):
     logger.info("OpenAi Exception:", retry_state.outcome.exception())
     return {"error": "ERROR_OPENAI", "message": "Open ai exception: "+str(retry_state.outcome.exception())}
 
+def check_brackets(collected_messages: list[str]) -> None:
+    open_count = 0
+    close_count = 0
+    
+    for message in collected_messages:
+        open_count += message.count('{')
+        close_count += message.count('}')
+    
+    if open_count == close_count:
+        return True
+    if open_count > close_count:
+        return False
+    else:
+        raise Timeout("open_count < close_count")
 
 class OpenAi(BaseLlm):
     def __init__(self, api_key, model="gpt-4", temperature=0.6, max_tokens=get_config("MAX_MODEL_TOKEN_LIMIT"), top_p=1,
@@ -82,6 +97,7 @@ class OpenAi(BaseLlm):
             dict: The response.
         """
         try:
+            stream = True
             # openai.api_key = get_config("OPENAI_API_KEY")
             response = openai.ChatCompletion.create(
                 n=self.number_of_results,
@@ -91,10 +107,43 @@ class OpenAi(BaseLlm):
                 max_tokens=max_tokens,
                 top_p=self.top_p,
                 frequency_penalty=self.frequency_penalty,
-                presence_penalty=self.presence_penalty
+                presence_penalty=self.presence_penalty,
+                stream=stream
             )
-            content = response.choices[0].message["content"]
-            return {"response": response, "content": content}
+            if not stream:
+                content = response.choices[0].message["content"]
+                return {"response": response, "content": content}
+            
+            last_time = time.time()
+            start_time = time.time()
+            collected_chunks = []
+            collected_messages = []
+            N = 100
+
+            for chunk in response:
+                collected_chunks.append(chunk)
+                chunk_message = chunk.choices[0].delta.content
+                if chunk_message is not None:
+                    collected_messages.append(chunk_message)
+                
+                if len(collected_messages) >= N and (len(collected_messages) % N) == 0:
+                    chunk_time = time.time() - last_time
+                    last_time = time.time()
+                    logger.info(f"Message received {chunk_time:.2f} seconds {len(collected_chunks)} chunks: {''.join(collected_messages[-N:])}")
+                if len(collected_messages) >= N*5 and (len(collected_messages) % N*5) == 0:
+                    chunk_time = time.time() - start_time
+                    logger.info(f"All message received {chunk_time:.2f} seconds {len(collected_chunks)} chunks: {''.join(collected_messages)}")
+                if collected_messages[0] == '{' and check_brackets(collected_messages):
+                    break
+
+            total_time = time.time() - start_time
+            logger.info(f"Full response received in {total_time:.2f} seconds")
+            
+            full_reply_content = ''.join(collected_messages)
+            logger.info(f"Total chunks: {len(collected_chunks)}")
+            logger.info(f"Total content length: {len(full_reply_content)} characters: {full_reply_content}")
+
+            return {"response": response, "content": full_reply_content}
         except RateLimitError as api_error:
             logger.info("OpenAi RateLimitError:", api_error)
             raise RateLimitError(str(api_error))
