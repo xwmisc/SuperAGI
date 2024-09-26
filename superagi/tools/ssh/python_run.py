@@ -1,6 +1,7 @@
 from typing import Type
 from pydantic import BaseModel, Field
 from superagi.tools.base_tool import BaseTool
+from superagi.lib.logger import logger
 
 
 class SshPythonExecutionSchema(BaseModel):
@@ -14,7 +15,7 @@ class SshPythonExecutionSchema(BaseModel):
     )
     python_script: str = Field(
       ...,
-        description="The completely Python3 script content to execute.",
+        description="The completely Python3 script content to execute. Dont use `;` in the script, use `\n` and format code instead.",
     )
 
 
@@ -29,8 +30,8 @@ class SshPythonExecutionTool(BaseTool):
     """
     name = "SshPythonExecution"
     description = (
-        "A tool for connecting to a remote server via SSH, "
-        "and executing provided Python 3.6.8 script on host path '/'. Input should include SSH connection info in the format 'user@ip:port' "
+        "A tool for executing provided Python 3.6.8 script on remote host path '/'. "
+        "Input should include SSH connection info in the format 'user@ip:port' "
         "and the password for accessing the server, along with the Python script to execute."
     )
     args_schema: Type[SshPythonExecutionSchema] = SshPythonExecutionSchema
@@ -92,4 +93,6 @@ class SshPythonExecutionTool(BaseTool):
             except paramiko.SSHException as ssh_exception:
                 return f"SSH connection error: {str(ssh_exception)}"
             except Exception as e:
+                import traceback
+                logger.error(f'Python Tool Error traceback: {traceback.format_exc()}')
                 return f"An unexpected error occurred: {str(e)}"

@@ -2,6 +2,7 @@ from typing import Type
 
 from pydantic import BaseModel, Field
 from superagi.tools.base_tool import BaseTool
+from superagi.lib.logger import logger
 
 
 class RemoteLinuxExecutionSchema(BaseModel):
@@ -83,4 +84,6 @@ class RemoteLinuxExecutionTool(BaseTool):
             except socket.error as socket_error:
                 return f"Network error: {str(socket_error)}"
             except Exception as e:
+                import traceback
+                logger.error(f'SSH Tool Error traceback: {traceback.format_exc()}')
                 return f"An unexpected error occurred: {str(e)}"
