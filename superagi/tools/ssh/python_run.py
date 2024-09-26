@@ -57,42 +57,44 @@ class SshPythonExecutionTool(BaseTool):
             return "Invalid SSH connection info format. Expected 'user@ip:port'."
         username, ip, port = match.groups()
 
-        with paramiko.SSHClient() as ssh:
-            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            try:
-                ssh.connect(ip, port=int(port), username=username, password=password, timeout=60)
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        try:
+            ssh.connect(ip, port=int(port), username=username, password=password, timeout=60)
 
-                # 对 Python 代码进行 base64 编码
-                encoded_code = base64.b64encode(python_script.encode()).decode()
+            # 对 Python 代码进行 base64 编码
+            encoded_code = base64.b64encode(python_script.encode()).decode()
 
-                # 创建临时文件并写入编码后的代码，然后解码到目标文件
-                temp_file = "/temp_encoded.txt"
-                target_file = "/target_code.py"
-                command_write_encoded = f"echo '{encoded_code}' > {temp_file}"
-                ssh.exec_command(command_write_encoded)
-                command_decode_to_file = f"cat /temp_encoded.txt | base64 -d > {target_file}"
-                ssh.exec_command(command_decode_to_file)
+            # 创建临时文件并写入编码后的代码，然后解码到目标文件
+            temp_file = "/temp_encoded.txt"
+            target_file = "/target_code.py"
+            command_write_encoded = f"echo '{encoded_code}' > {temp_file}"
+            ssh.exec_command(command_write_encoded)
+            command_decode_to_file = f"cat /temp_encoded.txt | base64 -d > {target_file}"
+            ssh.exec_command(command_decode_to_file)
 
-                # 使用 SSH 操作 Docker 创建容器并挂载临时文件执行 Python 代码
-                command = f"python3 {target_file}"
-                stdin, stdout, stderr = ssh.exec_command(command)
-                stdout_data = stdout.read().decode('utf-8')
-                stderr_data = stderr.read().decode('utf-8')
-                exit_status = stdout.channel.recv_exit_status()
+            # 使用 SSH 操作 Docker 创建容器并挂载临时文件执行 Python 代码
+            command = f"python3 {target_file}"
+            stdin, stdout, stderr = ssh.exec_command(command)
+            stdout_data = stdout.read().decode('utf-8')
+            stderr_data = stderr.read().decode('utf-8')
+            exit_status = stdout.channel.recv_exit_status()
 
-                output = f"Python Script: {python_script}\n"
-                output += f"Exit Status: {exit_status}\n"
-                output += f"Standard Output:\n{stdout_data}\n"
-                if stderr_data != "":
-                    output += f"Error Output:\n{stderr_data}\n"
+            output = f"Python Script: {python_script}\n"
+            output += f"Exit Status: {exit_status}\n"
+            output += f"Standard Output:\n{stdout_data}\n"
+            if stderr_data != "":
+                output += f"Error Output:\n{stderr_data}\n"
 
-                return output
+            return output
 
-            except paramiko.AuthenticationException:
-                return "Authentication failed: Please check username and password."
-            except paramiko.SSHException as ssh_exception:
-                return f"SSH connection error: {str(ssh_exception)}"
-            except Exception as e:
-                import traceback
-                logger.error(f'Python Tool Error traceback: {traceback.format_exc()}')
-                return f"An unexpected error occurred: {str(e)}"
+        except paramiko.AuthenticationException:
+            return "Authentication failed: Please check username and password."
+        except paramiko.SSHException as ssh_exception:
+            return f"SSH connection error: {str(ssh_exception)}"
+        except Exception as e:
+            import traceback
+            logger.error(f'Python Tool Error traceback: {traceback.format_exc()}')
+            return f"An unexpected error occurred: {str(e)}"
+        finally:
+            ssh.close()

@@ -60,30 +60,33 @@ class RemoteLinuxExecutionTool(BaseTool):
         """
         import paramiko
         import socket
-        with paramiko.SSHClient() as ssh:
-            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            try:
-                ssh.connect(ip, port=int(port), username=username, password=password, timeout=60)
-                with ssh.exec_command(bash_script) as (stdin, stdout, stderr):
-                    stdout_data = stdout.read().decode('utf-8')
-                    stderr_data = stderr.read().decode('utf-8')
-                    exit_status = stdout.channel.recv_exit_status()
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        try:
+            ssh.connect(ip, port=int(port), username=username, password=password, timeout=60)
 
-                output = f"Command: {bash_script}\n"
-                output += f"Exit Status: {exit_status}\n"
-                output += f"Standard Output:\n{stdout_data}\n"
-                if stderr_data != "":
-                    output += f"Error Output:\n{stderr_data}\n"
+            stdin, stdout, stderr = ssh.exec_command(bash_script)
+            stdout_data = stdout.read().decode('utf-8')
+            stderr_data = stderr.read().decode('utf-8')
+            exit_status = stdout.channel.recv_exit_status()
 
-                return output
+            output = f"Command: {bash_script}\n"
+            output += f"Exit Status: {exit_status}\n"
+            output += f"Standard Output:\n{stdout_data}\n"
+            if stderr_data != "":
+                output += f"Error Output:\n{stderr_data}\n"
 
-            except paramiko.AuthenticationException:
-                return "Authentication failed: Please check username and password"
-            except paramiko.SSHException as ssh_exception:
-                return f"SSH connection error: {str(ssh_exception)}"
-            except socket.error as socket_error:
-                return f"Network error: {str(socket_error)}"
-            except Exception as e:
-                import traceback
-                logger.error(f'SSH Tool Error traceback: {traceback.format_exc()}')
-                return f"An unexpected error occurred: {str(e)}"
+            return output
+
+        except paramiko.AuthenticationException:
+            return "Authentication failed: Please check username and password"
+        except paramiko.SSHException as ssh_exception:
+            return f"SSH connection error: {str(ssh_exception)}"
+        except socket.error as socket_error:
+            return f"Network error: {str(socket_error)}"
+        except Exception as e:
+            import traceback
+            logger.error(f'SSH Tool Error traceback: {traceback.format_exc()}')
+            return f"An unexpected error occurred: {str(e)}"
+        finally:
+            ssh.close()
