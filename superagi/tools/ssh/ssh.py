@@ -58,7 +58,6 @@ class RemoteLinuxExecutionTool(BaseTool):
             The output of the executed command.
         """
         import paramiko
-        import io
         import socket
         with paramiko.SSHClient() as ssh:
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -69,14 +68,13 @@ class RemoteLinuxExecutionTool(BaseTool):
                     stderr_data = stderr.read().decode('utf-8')
                     exit_status = stdout.channel.recv_exit_status()
 
-                output = io.StringIO()
-                output.write(f"Command: {bash_script}\n")
-                output.write(f"Exit Status: {exit_status}\n")
-                output.write(f"Standard Output:\n{stdout_data}\n")
+                output = f"Command: {bash_script}\n"
+                output += f"Exit Status: {exit_status}\n"
+                output += f"Standard Output:\n{stdout_data}\n"
                 if stderr_data != "":
-                    output.write(f"Error Output:\n{stderr_data}\n")
+                    output += f"Error Output:\n{stderr_data}\n"
 
-                return output.getvalue()
+                return output
 
             except paramiko.AuthenticationException:
                 return "Authentication failed: Please check username and password"

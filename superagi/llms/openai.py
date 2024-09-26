@@ -97,7 +97,7 @@ class OpenAi(BaseLlm):
             dict: The response.
         """
         try:
-            stream = True
+            stream = False
             # openai.api_key = get_config("OPENAI_API_KEY")
             response = openai.ChatCompletion.create(
                 n=self.number_of_results,

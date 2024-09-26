@@ -2,6 +2,7 @@ import time
 from typing import Tuple, List
 from sqlalchemy import asc
 
+from superagi.lib.logger import logger
 from superagi.config.config import get_config
 from superagi.helper.error_handler import ErrorHandler
 from superagi.helper.prompt_reader import PromptReader
@@ -51,6 +52,10 @@ class AgentLlmMessageBuilder:
             for history in current_messages:
                 messages.append({"role": history["role"], "content": history["content"]})
             messages.append({"role": "user", "content": completion_prompt})
+        
+        # 避免只存在system的情况，若仅有system，则转为user
+        if len(messages) == 1 and messages[0]["role"] == "system":
+            messages[0]["role"] = "user"
 
         # insert initial agent feeds
         self._add_initial_feeds(agent_feeds, messages)
