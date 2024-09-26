@@ -12,9 +12,9 @@ class SshPythonExecutionSchema(BaseModel):
       ...,
         description="The password for accessing the remote server.",
     )
-    python_code: str = Field(
+    python_script: str = Field(
       ...,
-        description="The Python 3 code to execute in the container.",
+        description="The completely Python3 script content to execute.",
     )
 
 
@@ -30,19 +30,19 @@ class SshPythonExecutionTool(BaseTool):
     name = "SshPythonExecution"
     description = (
         "A tool for connecting to a remote server via SSH, "
-        "and executing provided Python 3.6.8 code with `python3 /target_code.py`. Input should include SSH connection info in the format 'user@ip:port' "
-        "and the password for accessing the server, along with the Python code to execute."
+        "and executing provided Python 3.6.8 script on host path '/'. Input should include SSH connection info in the format 'user@ip:port' "
+        "and the password for accessing the server, along with the Python script to execute."
     )
     args_schema: Type[SshPythonExecutionSchema] = SshPythonExecutionSchema
 
-    def _execute(self, ssh_connection_info: str, password: str, python_code: str) -> str:
+    def _execute(self, ssh_connection_info: str, password: str, python_script: str) -> str:
         """
         Execute the SSH Python execution tool.
 
         Args:
             ssh_connection_info : The SSH connection information in the format 'user@ip:port'.
             password : The password for accessing the remote server.
-            python_code : The Python 3 code to execute.
+            python_script : The Python3 script content to execute.
 
         Returns:
             The output of the executed command.
@@ -62,7 +62,7 @@ class SshPythonExecutionTool(BaseTool):
                 ssh.connect(ip, port=int(port), username=username, password=password, timeout=60)
 
                 # 对 Python 代码进行 base64 编码
-                encoded_code = base64.b64encode(python_code.encode()).decode()
+                encoded_code = base64.b64encode(python_script.encode()).decode()
 
                 # 创建临时文件并写入编码后的代码，然后解码到目标文件
                 temp_file = "/temp_encoded.txt"
@@ -79,7 +79,7 @@ class SshPythonExecutionTool(BaseTool):
                 stderr_data = stderr.read().decode('utf-8')
                 exit_status = stdout.channel.recv_exit_status()
 
-                output = f"Command: {command}\n"
+                output = f"Python Script: {python_script}\n"
                 output += f"Exit Status: {exit_status}\n"
                 output += f"Standard Output:\n{stdout_data}\n"
                 if stderr_data != "":

@@ -35,6 +35,11 @@ def parse_feed(feed):
                 final_output += "Criticism: " + parsed["thoughts"]["criticism"] + "\n"
             if "tool" in parsed:
                 final_output += "Tool: " + parsed["tool"]["name"] + "\n"
+                if "args" in parsed["tool"]:
+                    args_output = "Args: "
+                    for key, value in parsed["tool"]["args"].items():
+                        args_output += f"{key}: {value}, "
+                    final_output += args_output.rstrip(", ") + "\n"
             if "command" in parsed:
                 final_output += "Tool: " + parsed["command"]["name"] + "\n"
 
