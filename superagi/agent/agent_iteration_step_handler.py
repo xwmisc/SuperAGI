@@ -60,6 +60,7 @@ class AgentIterationStepHandler:
             self.task_queue.clear_tasks()
 
         agent_tools = self._build_tools(agent_config, agent_execution_config)
+        logger.debug("agent_tools:", agent_tools)
         prompt = self._build_agent_prompt(iteration_workflow=iteration_workflow,
                                           agent_config=agent_config,
                                           agent_execution_config=agent_execution_config,
@@ -73,7 +74,8 @@ class AgentIterationStepHandler:
         logger.debug("Prompt messages:", messages)
         current_tokens = TokenCounter.count_message_tokens(messages = messages, model = self.llm.get_model())
         response = self.llm.chat_completion(messages, TokenCounter(session=self.session, organisation_id=organisation.id).token_limit(self.llm.get_model()) - current_tokens)
-
+        logger.debug("Response messages:", response))
+        
         if 'error' in response and response['message'] is not None:
             ErrorHandler.handle_openai_errors(self.session, self.agent_id, self.agent_execution_id, response['message'])
             

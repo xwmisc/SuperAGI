@@ -1,3 +1,4 @@
+import traceback
 from datetime import datetime, timedelta
 
 from sqlalchemy.orm import sessionmaker
@@ -87,7 +88,9 @@ class AgentExecutor:
                                              model_api_key, organisation, session)
 
             except Exception as e:
+                error_traceback = traceback.format_exc()
                 logger.info("Exception in executing the step: {}".format(e))
+                logger.error("Stack Trace: \n{}".format(error_traceback))
                 superagi.worker.execute_agent.apply_async((agent_execution_id, datetime.now()), countdown=15)
                 return
 
