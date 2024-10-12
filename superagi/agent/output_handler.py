@@ -90,8 +90,10 @@ class ToolOutputHandler:
                     metadatas.append(metadata)
 
                 self.memory.add_texts(chunk_response, metadatas)
-            except Exception as exception:
-                logger.error(f"Exception: {exception}")
+            except Exception as e:
+                import traceback
+                logger.error(traceback.format_exc())
+                logger.error(f"Exception: {e}")
         
      
 

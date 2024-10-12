@@ -1,6 +1,6 @@
 import os
 
-from llama_index.indices.response import ResponseMode
+from llama_index.response_synthesizers import ResponseMode
 from llama_index.schema import Document
 
 from superagi.config.config import get_config
@@ -21,11 +21,15 @@ class LlamaDocumentSummary:
         """
         if documents is None or not documents:
             return
-        from llama_index import LLMPredictor, ServiceContext, ResponseSynthesizer, DocumentSummaryIndex
+        from llama_index import LLMPredictor, ServiceContext, DocumentSummaryIndex
+        from llama_index.core import get_response_synthesizer
         os.environ["OPENAI_API_KEY"] = get_config("OPENAI_API_KEY", "") or self.model_api_key
         llm_predictor_chatgpt = LLMPredictor(llm=self._build_llm())
         service_context = ServiceContext.from_defaults(llm_predictor=llm_predictor_chatgpt, chunk_size=1024)
-        response_synthesizer = ResponseSynthesizer.from_args(response_mode=ResponseMode.TREE_SUMMARIZE, use_async=True)
+        response_synthesizer = get_response_synthesizer(
+            response_mode=ResponseMode.TREE_SUMMARIZE,
+            use_async=True,
+        )
         doc_summary_index = DocumentSummaryIndex.from_documents(
             documents=documents,
             service_context=service_context,

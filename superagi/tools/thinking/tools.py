@@ -71,5 +71,6 @@ class ThinkingTool(BaseTool):
                 ErrorHandler.handle_openai_errors(self.toolkit_config.session, self.agent_id, self.agent_execution_id, result['message'])
             return result["content"]
         except Exception as e:
-            logger.error(e)
+            import traceback
+            logger.error(traceback.format_exc())
             return f"Error generating text: {e}"

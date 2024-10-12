@@ -1,31 +1,34 @@
-import openai
+from openai import OpenAI
+import traceback
+from superagi.lib.logger import logger
 
 
 class OpenAiEmbedding:
-    def __init__(self, api_key, model="text-embedding-ada-002"):
+    def __init__(self, api_key, model="text-embedding-v2"):
         self.model = model
         self.api_key = api_key
         
     async def get_embedding_async(self, text: str):
         try:
-            openai.api_key = self.api_key
-            response = await openai.Embedding.create(
-                                input=[text],
-                engine=self.model
+            client = OpenAI()
+            response = await client.embeddings.create(
+                input=[text],
+                model=self.model
             )
-            return response['data'][0]['embedding']
+            return response.data[0].embedding
         except Exception as exception:
+            logger.error(f'OpenAiEmbedding Error traceback: {traceback.format_exc()}')
             return {"error": exception}    
 
                
     def get_embedding(self, text):
         try:
-            # openai.api_key = get_config("OPENAI_API_KEY")
-            response = openai.Embedding.create(
-                api_key=self.api_key,
+            client = OpenAI()
+            response = client.embeddings.create(
                 input=[text],
-                engine=self.model
+                model=self.model
             )
-            return response['data'][0]['embedding']
+            return response.data[0].embedding
         except Exception as exception:
+            logger.error(f'OpenAiEmbedding Error traceback: {traceback.format_exc()}')
             return {"error": exception}

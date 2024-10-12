@@ -40,7 +40,6 @@ class QueryResourceTool(BaseTool):
     llm: Optional[BaseLlm] = None
 
     def _execute(self, query: str):
-        openai.api_key = self.llm.get_api_key()
         os.environ["OPENAI_API_KEY"] = self.llm.get_api_key()
         llm_predictor_chatgpt = LLMPredictor(llm=ChatOpenAI(temperature=0, model_name=self.llm.get_model(),
                                                             openai_api_key=get_config("OPENAI_API_KEY")))

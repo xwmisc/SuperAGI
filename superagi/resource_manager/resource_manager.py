@@ -83,7 +83,6 @@ class ResourceManager:
             logger.info("Resource embedding not supported for Google Palm..")
             return
         import openai
-        openai.api_key = get_config("OPENAI_API_KEY") or mode_api_key
         os.environ["OPENAI_API_KEY"] = get_config("OPENAI_API_KEY", "") or mode_api_key
         for docs in documents:
             if docs.metadata is None:

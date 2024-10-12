@@ -1,7 +1,6 @@
 import time
-import openai
-from openai import APIError, InvalidRequestError
-from openai.error import RateLimitError, AuthenticationError, Timeout, TryAgain
+import os
+from openai import APIError, OpenAI, RateLimitError, AuthenticationError, APITimeoutError, BadRequestError
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_random_exponential
 
 from superagi.config.config import get_config
@@ -29,7 +28,7 @@ def check_brackets(collected_messages: list[str]) -> None:
     if open_count > close_count:
         return False
     else:
-        raise Timeout("open_count < close_count")
+        raise APITimeoutError("open_count < close_count")
 
 class OpenAi(BaseLlm):
     def __init__(self, api_key, model="gpt-4", temperature=0.6, max_tokens=get_config("MAX_MODEL_TOKEN_LIMIT"), top_p=1,
@@ -54,8 +53,8 @@ class OpenAi(BaseLlm):
         self.presence_penalty = presence_penalty
         self.number_of_results = number_of_results
         self.api_key = api_key
-        openai.api_key = api_key
-        openai.api_base = get_config("OPENAI_API_BASE", "https://api.openai.com/v1")
+        os.environ['OPENAI_API_KEY'] = api_key
+        os.environ['OPENAI_BASE_URL'] = get_config("OPENAI_API_BASE", "https://api.openai.com/v1")
 
     def get_source(self):
         return "openai"
@@ -77,8 +76,7 @@ class OpenAi(BaseLlm):
     @retry(
         retry=(
             retry_if_exception_type(RateLimitError) |
-            retry_if_exception_type(Timeout) |
-            retry_if_exception_type(TryAgain)
+            retry_if_exception_type(APITimeoutError)
         ),
         stop=stop_after_attempt(MAX_RETRY_ATTEMPTS), # Maximum number of retry attempts
         wait=wait_random_exponential(min=MIN_WAIT, max=MAX_WAIT),
@@ -96,10 +94,13 @@ class OpenAi(BaseLlm):
         Returns:
             dict: The response.
         """
+        # 避免只存在system的情况，若仅有system，则转为user
+        if len(messages) == 1 and messages[0]["role"] == "system":
+            messages[0]["role"] = "user"
         try:
             stream = False
-            # openai.api_key = get_config("OPENAI_API_KEY")
-            response = openai.ChatCompletion.create(
+            client = OpenAI()
+            response = client.chat.completions.create(
                 n=self.number_of_results,
                 model=self.model,
                 messages=messages,
@@ -111,7 +112,7 @@ class OpenAi(BaseLlm):
                 stream=stream
             )
             if not stream:
-                content = response.choices[0].message["content"]
+                content = response.choices[0].message.content
                 return {"response": response, "content": content}
             
             last_time = time.time()
@@ -147,17 +148,14 @@ class OpenAi(BaseLlm):
         except RateLimitError as api_error:
             logger.info("OpenAi RateLimitError:", api_error)
             raise RateLimitError(str(api_error))
-        except Timeout as timeout_error:
-            logger.info("OpenAi Timeout:", timeout_error)
-            raise Timeout(str(timeout_error))
-        except TryAgain as try_again_error:
-            logger.info("OpenAi TryAgain:", try_again_error)
-            raise TryAgain(str(try_again_error))
+        except APITimeoutError as timeout_error:
+            logger.info("OpenAi APITimeoutError:", timeout_error)
+            raise APITimeoutError(str(timeout_error))
         except AuthenticationError as auth_error:
             logger.info("OpenAi AuthenticationError:", auth_error)
             return {"error": "ERROR_AUTHENTICATION", "message": "Authentication error please check the api keys: "+str(auth_error)}
-        except InvalidRequestError as invalid_request_error:
-            logger.info("OpenAi InvalidRequestError:", invalid_request_error)
+        except BadRequestError as invalid_request_error:
+            logger.info("OpenAi BadRequestError:", invalid_request_error)
             return {"error": "ERROR_INVALID_REQUEST", "message": "Openai invalid request error: "+str(invalid_request_error)}
         except Exception as exception:
             logger.info("OpenAi Exception:", exception)
@@ -171,7 +169,8 @@ class OpenAi(BaseLlm):
             bool: True if the access key is valid, False otherwise.
         """
         try:
-            models = openai.Model.list()
+            client = OpenAI()
+            models = client.models.list()
             return True
         except Exception as exception:
             logger.info("OpenAi Exception:", exception)
@@ -185,7 +184,8 @@ class OpenAi(BaseLlm):
             list: The models.
         """
         try:
-            models = openai.Model.list()
+            client = OpenAI()
+            models = client.models.list()
             models = [model["id"] for model in models["data"]]
             models_supported = ['gpt-4', 'gpt-3.5-turbo', 'gpt-3.5-turbo-16k', 'gpt-4-32k']
             models = [model for model in models if model in models_supported]
