@@ -97,20 +97,24 @@ class OpenAi(BaseLlm):
         # 避免只存在system的情况，若仅有system，则转为user
         if len(messages) == 1 and messages[0]["role"] == "system":
             messages[0]["role"] = "user"
+        # 配置参数
+        stream = False
+        params = {
+            'n': self.number_of_results,
+            'model': self.model,
+            'messages': messages,
+            'temperature': self.temperature,
+            'top_p': self.top_p,
+            'frequency_penalty': self.frequency_penalty,
+            'presence_penalty': self.presence_penalty,
+            'stream': stream
+        }
+        # 限制长度。其实可以超过8196，但是openai的接口最大只能传8192，所以当长度大于8192，则直接无视该参数
+        if 1 <= max_tokens and max_tokens <= 8192:
+            params['max_tokens'] = max_tokens
         try:
-            stream = False
             client = OpenAI()
-            response = client.chat.completions.create(
-                n=self.number_of_results,
-                model=self.model,
-                messages=messages,
-                temperature=self.temperature,
-                max_tokens=max_tokens,
-                top_p=self.top_p,
-                frequency_penalty=self.frequency_penalty,
-                presence_penalty=self.presence_penalty,
-                stream=stream
-            )
+            response = client.chat.completions.create(**params)
             if not stream:
                 content = response.choices[0].message.content
                 return {"response": response, "content": content}
