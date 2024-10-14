@@ -17,4 +17,10 @@ class ToolCreatorToolkit(BaseToolkit, ABC):
         return [DeleteFileTool(), ListFileTool(), ReadFileTool(), WriteFileTool(), ]
 
     def get_env_keys(self) -> List[ToolConfiguration]:
-        return []
+        '''
+{
+    "whitelist": ["/root/aiops-sdk/.*"],
+    "blacklist": ["aiops-tool\\.sh$", "standard\\.sh$"]
+}
+        '''
+        return [ToolConfiguration(key="write_rule", key_type=ToolConfigKeyType.STRING, is_required=True)]

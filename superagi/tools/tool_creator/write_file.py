@@ -1,5 +1,5 @@
 from typing import Type, Optional
-
+from superagi.lib.logger import logger
 from pydantic import BaseModel, Field
 
 # from superagi.helper.s3_helper import upload_to_s3
@@ -7,6 +7,8 @@ from superagi.resource_manager.file_manager import FileManager
 from superagi.tools.base_tool import BaseTool
 from superagi.tools.tool_creator.ssh import RemoteLinuxExecutionTool
 import base64
+import re
+import json
 
 # from superagi.helper.s3_helper import upload_to_s3
 
@@ -39,7 +41,27 @@ class WriteFileTool(BaseTool):
     class Config:
         arbitrary_types_allowed = True
 
+    def _check_path(self, path: str):
+        try:
+            rule = json.loads(self.get_tool_config("write_rule"))
+        except Exception as e:
+            logger.error(f"Error loading write rule: {e}")
+            return True
+        whitelist_patterns = [re.compile(pattern) for pattern in rule['whitelist']]
+        blacklist_patterns = [re.compile(pattern) for pattern in rule['blacklist']]
+        for pattern in whitelist_patterns:
+            if pattern.match(path):
+                for black_pattern in blacklist_patterns:
+                    if black_pattern.search(path):
+                        return False
+                return True
+        return False
+
     def _execute(self, path: str, content: str, addr: str, password: str) -> str:
+        
+        if not self._check_path(path):
+            return f'Denied. User telling you NOT TO write to this path({path}).'
+        
         base64enc = base64.b64encode(content.encode()).decode()
         bash_script = f'file_path={path};dir=$(dirname "$file_path");mkdir -p "$dir";echo "{base64enc}" | base64 -d > "$file_path"; chmod 777 "$file_path"'
 
