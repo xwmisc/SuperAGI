@@ -13,7 +13,7 @@ import json
 # from superagi.helper.s3_helper import upload_to_s3
 
 
-class WriteFileInput(BaseModel):
+class ToolWriteFileInput(BaseModel):
     """Input for CopyFileTool."""
     path: str = Field(..., description="Path of the file to write. Include path. Don't Only include the file name.")
     content: str = Field(..., description="File content to write")
@@ -21,7 +21,7 @@ class WriteFileInput(BaseModel):
     password: str = Field(..., description="The password for accessing the remote server.")
 
 
-class WriteFileTool(BaseTool):
+class ToolWriteFileTool(BaseTool):
     """
     Write File tool
 
@@ -32,9 +32,9 @@ class WriteFileTool(BaseTool):
         args_schema : The args schema.
         resource_manager: File resource manager.
     """
-    name: str = "Write File"
-    args_schema: Type[BaseModel] = WriteFileInput
-    description: str = "Writes text to a file"
+    name: str = "Tool Write File"
+    args_schema: Type[BaseModel] = ToolWriteFileInput
+    description: str = "Writes text to a file for tool build task"
     agent_id: int = None
     resource_manager: Optional[FileManager] = None
 

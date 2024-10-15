@@ -19,14 +19,14 @@ from superagi.config.config import get_config
 from unstructured.partition.auto import partition
 from superagi.lib.logger import logger
 
-class ReadFileSchema(BaseModel):
+class ToolReadFileSchema(BaseModel):
     """Input for CopyFileTool."""
     path: str = Field(..., description="Path of the file to read")
     addr: str = Field(..., description="The address of the remote server in the format: username@ip:port")
     password: str = Field(..., description="The password for accessing the remote server.")
 
 
-class ReadFileTool(BaseTool):
+class ToolReadFileTool(BaseTool):
     """
     Read File tool
 
@@ -35,11 +35,11 @@ class ReadFileTool(BaseTool):
         description : The description.
         args_schema : The args schema.
     """
-    name: str = "Read File"
+    name: str = "Tool Read File"
     agent_id: int = None
     agent_execution_id: int = None
-    args_schema: Type[BaseModel] = ReadFileSchema
-    description: str = "Reads the file content in a specified location"
+    args_schema: Type[BaseModel] = ToolReadFileSchema
+    description: str = "Reads the file content in a specified location for tool build task"
     resource_manager: Optional[FileManager] = None
 
     def _execute(self, path: str, addr: str, password: str) -> str:
