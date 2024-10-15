@@ -16,3 +16,4 @@
 !/tools.json
 !/install_tool_dependencies.sh
 !/alembic.ini
+!/cl100k_base.tiktoken

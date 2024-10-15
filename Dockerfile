@@ -37,7 +37,10 @@ COPY --from=compile-image /root/nltk_data /root/nltk_data
 
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Cache the tiktoken encoding file
-RUN python -c "import tiktoken; tiktoken.get_encoding('cl100k_base')"
+# docker builder prune
+RUN mv cl100k_base.tiktoken /9b5ad71b2ce5302211f9c61530b329a4922fc6a4
+# COPY --from=compile-image /app/cl100k_base.tiktoken /app/9b5ad71b2ce5302211f9c61530b329a4922fc6a4
+ENV TIKTOKEN_CACHE_DIR=/
+# RUN python -c "import tiktoken; tiktoken.get_encoding('cl100k_base')"
 
 EXPOSE 8001
