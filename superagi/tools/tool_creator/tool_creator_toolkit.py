@@ -19,8 +19,8 @@ class ToolCreatorToolkit(BaseToolkit, ABC):
     def get_env_keys(self) -> List[ToolConfiguration]:
         '''
 {
-    "whitelist": ["/root/aiops-sdk/.*"],
-    "blacklist": ["aiops-tool\\.sh$", "standard\\.sh$"]
+    "whitelist": ["/root/aiops-sdk/tools/.*"],
+    "blacklist": ["aiops-tool\\.sh$", "standard\\.sh$", "check_.*"]
 }
         '''
         return [ToolConfiguration(key="write_rule", key_type=ToolConfigKeyType.STRING, is_required=True)]
