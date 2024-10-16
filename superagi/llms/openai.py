@@ -109,8 +109,8 @@ class OpenAi(BaseLlm):
             'presence_penalty': self.presence_penalty,
             'stream': stream
         }
-        # 限制长度。其实可以超过8196，但是openai的接口最大只能传8192，所以当长度大于8192，则直接无视该参数
-        if 1 <= max_tokens and max_tokens <= 8192:
+        # 限制长度。和具体模型的api有关系，所以当token长度大于TOKEN_UNLIMIT_THRESHOLD，则直接无视该参数
+        if 1 <= max_tokens and max_tokens <= get_config("TOKEN_UNLIMIT_THRESHOLD"):
             params['max_tokens'] = max_tokens
         try:
             client = OpenAI()
