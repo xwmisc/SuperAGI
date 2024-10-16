@@ -117,7 +117,7 @@ class ToolOutputHandler:
                 agent_execution_id=self.agent_execution_id,
                 status="PENDING",
                 agent_id=self.agent_config["agent_id"],
-                tool_name=action.name,
+                tool_name=action.name + ":" + str(action.args),
                 assistant_reply=assistant_reply)
 
             session.add(new_agent_execution_permission)
